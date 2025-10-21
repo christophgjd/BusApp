@@ -1,3 +1,5 @@
+const url = "http://localhost:3000/";
+
 function setDatePickerDefaults(inputId, monthsAhead = 4) {
   const dateInput = document.getElementById(inputId);
 
@@ -29,7 +31,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (form) {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!form.checkValidity()) { form.reportValidity(); return; }
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
       updateDatabase();
     });
   }
@@ -37,12 +42,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 });
 
-
 const vehicleTypes = new Map();
 
 async function loadVehicleTypes() {
   try {
-    const res = await fetch("http://localhost:3000/fahrzeugtyp");
+    const res = await fetch(`${url}fahrzeugtyp`);
     const data = await res.json();
     data.forEach((row) => {
       const key = getField(row, ["typname", "Typname", "name", "typ"]);
@@ -57,15 +61,17 @@ async function loadVehicleTypes() {
 function wireUpDetailsUpdates() {
   ["start", "end", "typ"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("change", () => {
-      updateVehicleDetails();
-      updateTotalPrice();
-    });
+    if (el)
+      el.addEventListener("change", () => {
+        updateVehicleDetails();
+        updateTotalPrice();
+      });
   });
 }
 
 function getField(obj, names) {
-  for (const n of names) if (obj && Object.prototype.hasOwnProperty.call(obj, n)) return obj[n];
+  for (const n of names)
+    if (obj && Object.prototype.hasOwnProperty.call(obj, n)) return obj[n];
   return undefined;
 }
 
@@ -73,7 +79,12 @@ function updateVehicleDetails() {
   const typ = document.getElementById("typ")?.value;
   const row = typ ? vehicleTypes.get(String(typ)) : undefined;
   const preis = getField(row, ["preis", "Preis", "price", "preis_pro_tag"]);
-  const maxDauer = getField(row, ["max_dauer", "MaxDauer", "maxDauer", "dauer"]);
+  const maxDauer = getField(row, [
+    "max_dauer",
+    "MaxDauer",
+    "maxDauer",
+    "dauer",
+  ]);
   const freiKm = getField(row, ["frei_km", "FreiKM", "freikm", "km_frei"]);
   const kmPreis = getField(row, ["km_preis", "KmPreis", "kmPreis", "preis_km"]);
   const kaution = getField(row, ["kaution", "Kaution", "deposit"]);
@@ -100,12 +111,18 @@ function updateTotalPrice() {
   const end = document.getElementById("end")?.value;
   const out = document.getElementById("vd-gesamt");
   if (!out) return;
-  if (!preis || !start || !end) { out.textContent = "—"; return; }
+  if (!preis || !start || !end) {
+    out.textContent = "—";
+    return;
+  }
   const d1 = new Date(start);
   const d2 = new Date(end);
   const msPerDay = 24 * 60 * 60 * 1000;
   let days = Math.floor((d2 - d1) / msPerDay) + 1; // inkl. Starttag
-  if (!Number.isFinite(days) || days <= 0) { out.textContent = "—"; return; }
+  if (!Number.isFinite(days) || days <= 0) {
+    out.textContent = "—";
+    return;
+  }
   const total = days * Number(preis);
   out.textContent = formatEUR(total);
 }
@@ -113,7 +130,10 @@ function updateTotalPrice() {
 function formatEUR(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+  }).format(n);
 }
 
 async function updateDatabase() {
@@ -123,8 +143,8 @@ async function updateDatabase() {
   const getTyp = document.getElementById("typ").value;
 
   const getKennzeichen = await checkAvailablePlate(getStart, getEnd, getTyp);
- 
-  fetch("http://localhost:3000/buchung", {
+
+  fetch(`${url}/buchung`, {
     method: "POST",
     body: JSON.stringify({
       email: getEmail,
@@ -138,16 +158,88 @@ async function updateDatabase() {
   })
     .then((response) => response.json())
     .then((json) => console.log(json));
+    savePdf();
+}
+
+async function savePdf() {
+  let file = "";
+  let textSize = 11;
+  let nameX,
+    nameY,
+    telefonnummerX,
+    telefonnummerY,
+    personalnummerX,
+    personalnummerY,
+    emailX,
+    emailY,
+    vonDatumX,
+    vonDatumY,
+    bisDatumX,
+    bisDatumY;
+  if (document.getElementById("typ").value == "Pritsche") {
+    file = "pdfTemplate/VertragPritsche.pdf";
+    nameX = 310;
+    nameY = 670;
+    telefonnummerX = 340;
+    telefonnummerY = 647;
+    personalnummerX = 470;
+    personalnummerY = 620;
+    vonDatumX = 353;
+    vonDatumY = 565;
+    bisDatumX = 450;
+    bisDatumY = 565;
+  } else if (document.getElementById("typ").value == "Busse") {
+    file = "pdfTemplate/VertragBus.pdf";
+    nameX = 310;
+    nameY = 710;
+    telefonnummerX = 340;
+    telefonnummerY = 675;
+    personalnummerX = 450;
+    personalnummerY = 650;
+    vonDatumX = 335;
+    vonDatumY = 595;
+    bisDatumX = 435;
+    bisDatumY = 595;
+  }
+  // const name =
+  //   document.getElementById("vorname").value +
+  //   " " +
+  //   document.getElementById("nachname").value;
+  const telefonnummer = document.getElementById("telefonnummer").value;
+  const email = document.getElementById("email").value;
+  const vonDatum = document.getElementById("start").value;
+  const bisDatum = document.getElementById("end").value;
+
+  const existingPdfBytes = await fetch(file).then((res) => res.arrayBuffer());
+  const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+
+  firstPage.drawText(name, { x: nameX, y: nameY, size: textSize });
+  firstPage.drawText(telefonnummer, {
+    x: telefonnummerX,
+    y: telefonnummerY,
+    size: textSize,
+  });
+  firstPage.drawText(vonDatum, { x: vonDatumX, y: vonDatumY, size: textSize });
+  firstPage.drawText(bisDatum, { x: bisDatumX, y: bisDatumY, size: textSize });
+ 
+
+  const pdfBytes = await pdfDoc.save();
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "Vertrag.pdf";
+  link.click();
 }
 
 async function checkAvailablePlate(start, end, typ) {
-  const url = `http://localhost:3000/verfuegbar/${start}/${end}/${typ}`;;
   let kennzeichen = "";
- 
-  await fetch(url)
+
+  await fetch(`${url}/verfuegbar/${start}/${end}/${typ}`)
     .then((response) => response.json())
     .then((data) => {
-        kennzeichen = data[0].kennzeichen;
+      kennzeichen = data[0].kennzeichen;
     })
     .catch((error) => {
       console.error("Error:", error);
