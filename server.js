@@ -10,10 +10,10 @@ app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self' http://localhost:3000;" +
-      "script-src 'self' http://localhost:3000;" +
+      "script-src 'self' http://localhost:3000 https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.js;" +
       "style-src 'self';" +
       "img-src 'self';" +
-      "connect-src 'self' http://localhost:3000 http://localhost:3000/buchungen;"
+      "connect-src * ;"
   );
   next();
 });

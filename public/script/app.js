@@ -32,7 +32,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setDatePickerDefaults("start");
   setDatePickerDefaults("end");
   await loadVehicleTypes();
-  wireUpDetailsUpdates();
+  hideError();
   const form = document.getElementById("bookingForm");
   if (form) {
     form.addEventListener("submit", (e) => {
@@ -42,109 +42,52 @@ window.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       updateDatabase();
-      updateVehicleDetails();
-      updateTotalPrice();
     });
   }
   const yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 });
 
-const vehicleTypes = new Map();
+document.getElementById("start").addEventListener("change", setGlobalPreise);
+document.getElementById("end").addEventListener("change", setGlobalPreise);
+document.getElementById("typ").addEventListener("change", loadVehicleTypes );
 
 async function loadVehicleTypes() {
+  const currenttyp = document.getElementById("typ").value;
+  
   try {
     const res = await fetch(`${url}fahrzeugtyp`);
     const data = await res.json();
-    data.forEach((row) => {
-      const key = getField(row, ["typname", "Typname", "name", "typ"]);
-      if (key) vehicleTypes.set(String(key), row);
-    });
-    updateVehicleDetails();
+    for (let i in data) {
+      if (data[i].name == currenttyp) {
+        setPreise(data[i].tagespreis, data[i].kilometerpreis);
+      }
+    }
   } catch (e) {
     console.error("Fahrzeugtypen konnten nicht geladen werden", e);
   }
 }
 
-function wireUpDetailsUpdates() {
-  ["start", "end", "typ"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el)
-      el.addEventListener("change", () => {
-        updateVehicleDetails();
-        updateTotalPrice();
-      });
-  });
+async function setPreise(tagespreis, kilometerpreis){
+  const dauer = setDauer();
+  document.getElementById("vd-preis").innerHTML = tagespreis;
+  document.getElementById("vd-kmpreis").innerHTML = kilometerpreis;
+  document.getElementById("vd-kaution").innerHTML = 100;
+  document.getElementById("vd-gesamt").innerHTML = tagespreis * dauer + 100;
 }
 
-function getField(obj, names) {
-  for (const n of names)
-    if (obj && Object.prototype.hasOwnProperty.call(obj, n)) return obj[n];
-  return undefined;
+function setGlobalPreise(){
+    set
 }
 
-function updateVehicleDetails() {
-  const typ = document.getElementById("typ")?.value;
-  const row = typ ? vehicleTypes.get(String(typ)) : undefined;
-  const preis = getField(row, [
-    "preis",
-    "Preis",
-    "price",
-    "preis_pro_tag",
-    "tagespreis",
-  ]);
-  const maxDauer = getField(row, [
-    "max_dauer",
-    "MaxDauer",
-    "maxDauer",
-    "dauer",
-  ]);
-  const freiKm = getField(row, ["frei_km", "FreiKM", "freikm", "km_frei"]);
-  const kmPreis = getField(row, [
-    "km_preis",
-    "KmPreis",
-    "kmPreis",
-    "preis_km",
-    "kilometerpreis",
-  ]);
-  const kaution = getField(row, ["kaution", "Kaution", "deposit"]);
+function setDauer(){
+const start = new Date(document.getElementById("start").value);
+  const ende = new Date(document.getElementById("end").value);
 
-  setDetail("vd-preis", preis != null ? formatEUR(preis) + " / Tag" : "—");
-  setDetail("vd-maxdauer", maxDauer != null ? `${maxDauer} Tage` : "—");
-  setDetail("vd-freikm", freiKm != null ? `${freiKm} km` : "—");
-  setDetail("vd-kmpreis", kmPreis != null ? formatEUR(kmPreis) + " / km" : "—");
-  setDetail("vd-kaution", kaution != null ? formatEUR(kaution) : "—");
+  const differenzMs = ende - start;
+  const tage = Math.floor(differenzMs / (1000 * 60 * 60 * 24)) + 1;
 
-  updateTotalPrice();
-}
-
-function setDetail(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
-}
-
-function updateTotalPrice() {
-  const typ = document.getElementById("typ")?.value;
-  const row = typ ? vehicleTypes.get(String(typ)) : undefined;
-  const preis = getField(row, ["preis", "Preis", "price", "preis_pro_tag"]);
-  const start = document.getElementById("start")?.value;
-  const end = document.getElementById("end")?.value;
-  const out = document.getElementById("vd-gesamt");
-  if (!out) return;
-  if (!preis || !start || !end) {
-    out.textContent = "—";
-    return;
-  }
-  const d1 = new Date(start);
-  const d2 = new Date(end);
-  const msPerDay = 24 * 60 * 60 * 1000;
-  let days = Math.floor((d2 - d1) / msPerDay) + 1; // inkl. Starttag
-  if (!Number.isFinite(days) || days <= 0) {
-    out.textContent = "—";
-    return;
-  }
-  const total = days * Number(preis);
-  out.textContent = formatEUR(total);
+  return tage;
 }
 
 function formatEUR(value) {
@@ -156,6 +99,20 @@ function formatEUR(value) {
   }).format(n);
 }
 
+function hideError() {
+  const errorDiv = document.getElementById("error-message");
+  errorDiv.style.display = "none";
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById("error-message");
+  errorDiv.textContent = message;
+  errorDiv.style.display = "block";
+  setTimeout(() => {
+    errorDiv.style.display = "none";
+  }, 5000);
+}
+
 async function updateDatabase() {
   const getEmail = document.getElementById("email").value;
   const getStart = document.getElementById("start").value;
@@ -163,8 +120,14 @@ async function updateDatabase() {
   const getTyp = document.getElementById("typ").value;
 
   const getKennzeichen = await checkAvailablePlate(getStart, getEnd, getTyp);
-
-  fetch(`${url}/buchung`, {
+  if (!getKennzeichen) {
+    showError(
+      `In diesem Zeitraum ist kein Fahrzeug vom Typ ${getTyp} verfügbar`
+    );
+    return;
+  }
+  savePdf();
+  fetch(`${url}buchung`, {
     method: "POST",
     body: JSON.stringify({
       email: getEmail,
@@ -178,7 +141,6 @@ async function updateDatabase() {
   })
     .then((response) => response.json())
     .then((json) => console.log(json));
-    savePdf();
 }
 
 async function savePdf() {
@@ -196,8 +158,8 @@ async function savePdf() {
     vonDatumY,
     bisDatumX,
     bisDatumY;
-  if (document.getElementById("typ").value == "Pritsche") {
-    file = "pdfTemplate/VertragPritsche.pdf";
+  if (document.getElementById("typ").value == "pritsche") {
+    file = "/pdfTemplate/VertragPritsche.pdf";
     nameX = 310;
     nameY = 670;
     telefonnummerX = 340;
@@ -208,8 +170,8 @@ async function savePdf() {
     vonDatumY = 565;
     bisDatumX = 450;
     bisDatumY = 565;
-  } else if (document.getElementById("typ").value == "Busse") {
-    file = "pdfTemplate/VertragBus.pdf";
+  } else if (document.getElementById("typ").value == "BUS") {
+    file = "/pdfTemplate/VertragBus.pdf";
     nameX = 310;
     nameY = 710;
     telefonnummerX = 340;
@@ -221,10 +183,10 @@ async function savePdf() {
     bisDatumX = 435;
     bisDatumY = 595;
   }
-  // const name =
-  //   document.getElementById("vorname").value +
-  //   " " +
-  //   document.getElementById("nachname").value;
+  const name =
+    document.getElementById("vorname").value +
+    " " +
+    document.getElementById("nachname").value;
   const telefonnummer = document.getElementById("telefonnummer").value;
   const email = document.getElementById("email").value;
   const vonDatum = document.getElementById("start").value;
@@ -243,7 +205,6 @@ async function savePdf() {
   });
   firstPage.drawText(vonDatum, { x: vonDatumX, y: vonDatumY, size: textSize });
   firstPage.drawText(bisDatum, { x: bisDatumX, y: bisDatumY, size: textSize });
- 
 
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
@@ -256,7 +217,7 @@ async function savePdf() {
 async function checkAvailablePlate(start, end, typ) {
   let kennzeichen = "";
 
-  await fetch(`${url}/verfuegbar/${start}/${end}/${typ}`)
+  await fetch(`${url}verfuegbar/${start}/${end}/${typ}`)
     .then((response) => response.json())
     .then((data) => {
       kennzeichen = data[0].kennzeichen;
@@ -264,6 +225,5 @@ async function checkAvailablePlate(start, end, typ) {
     .catch((error) => {
       console.error("Error:", error);
     });
-  console.log(kennzeichen);
   return kennzeichen;
 }
