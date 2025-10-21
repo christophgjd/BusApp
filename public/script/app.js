@@ -23,6 +23,12 @@ function formatDate(date) {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("vorname").addEventListener("input", function () {
+    this.value = this.value.replace(/[0-9]/g, "");
+  });
+  document.getElementById("nachname").addEventListener("input", function () {
+    this.value = this.value.replace(/[0-9]/g, "");
+  });
   setDatePickerDefaults("start");
   setDatePickerDefaults("end");
   await loadVehicleTypes();
@@ -36,6 +42,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       updateDatabase();
+      updateVehicleDetails();
+      updateTotalPrice();
     });
   }
   const yearEl = document.getElementById("year");
@@ -78,7 +86,13 @@ function getField(obj, names) {
 function updateVehicleDetails() {
   const typ = document.getElementById("typ")?.value;
   const row = typ ? vehicleTypes.get(String(typ)) : undefined;
-  const preis = getField(row, ["preis", "Preis", "price", "preis_pro_tag"]);
+  const preis = getField(row, [
+    "preis",
+    "Preis",
+    "price",
+    "preis_pro_tag",
+    "tagespreis",
+  ]);
   const maxDauer = getField(row, [
     "max_dauer",
     "MaxDauer",
@@ -86,7 +100,13 @@ function updateVehicleDetails() {
     "dauer",
   ]);
   const freiKm = getField(row, ["frei_km", "FreiKM", "freikm", "km_frei"]);
-  const kmPreis = getField(row, ["km_preis", "KmPreis", "kmPreis", "preis_km"]);
+  const kmPreis = getField(row, [
+    "km_preis",
+    "KmPreis",
+    "kmPreis",
+    "preis_km",
+    "kilometerpreis",
+  ]);
   const kaution = getField(row, ["kaution", "Kaution", "deposit"]);
 
   setDetail("vd-preis", preis != null ? formatEUR(preis) + " / Tag" : "—");
