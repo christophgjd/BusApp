@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BusApp – Fahrzeug buchen</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script/app.js" defer></script>
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <div class="brand" aria-label="Startseite">
+          <img src="img/logo-wienerlinien.svg" alt="Wiener Linien" class="brand__img" />
+          <span class="brand__name">Fahrzeugvermietung</span>
+        </div>
+        <div class="header__title" aria-hidden="false">Fahrzeugvermietung</div>
+        <div class="header__spacer" aria-hidden="true"></div>
+      </div>
+    </header>
+
+    <main class="container space-y">
+      <section class="hero">
+        <h1 class="h1">Fahrzeug buchen</h1>
+        <p class="muted">Wählen Sie den Zeitraum und den Fahrzeugtyp aus.</p>
+      </section>
+
+      <section class="card">
+        <form class="form-grid" id="bookingForm">
+          <div class="field">
+            <label for="email">E‑Mail</label>
+            <input type="email" id="email" placeholder="name@beispiel.de" required />
+          </div>
+
+          <div class="field">
+            <label for="start">Startdatum</label>
+            <input type="date" id="start" required />
+          </div>
+
+          <div class="field">
+            <label for="end">Enddatum</label>
+            <input type="date" id="end" required />
+          </div>
+
+          <div class="field">
+            <label for="typ">Fahrzeugtyp</label>
+            <select id="typ">
+              <option value="BUS">Bus</option>
+              <option value="pritsche">Pritsche</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="submit" type="submit" class="btn btn-primary">Bestätigen</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Fahrzeugdetails Panel -->
+      <section class="card details">
+        <h2 class="details__title">Fahrzeugdetails</h2>
+        <ul class="details__list" aria-live="polite">
+          <li class="details__row"><span>Preis:</span><strong id="vd-preis">—</strong></li>
+          <li class="details__row"><span>Max. Dauer:</span><strong id="vd-maxdauer">—</strong></li>
+          <li class="details__row"><span>Frei KM:</span><strong id="vd-freikm">—</strong></li>
+          <li class="details__row"><span>KM Preis:</span><strong id="vd-kmpreis">—</strong></li>
+          <li class="details__row"><span>Kaution:</span><strong id="vd-kaution">—</strong></li>
+        </ul>
+        <div class="details__total">
+          <span>Gesamtpreis:</span>
+          <strong id="vd-gesamt" class="details__total-value">—</strong>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <small class="muted">© <span id="year"></span> BusApp</small>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,98 @@
+const express = require("express");
+const axios = require("axios");
+const path = require("path");
+const db = require("./db");
+
+const app = express();
+const PORT = 3000;
+
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self' http://localhost:3000;" +
+      "script-src 'self' http://localhost:3000;" +
+      "style-src 'self';" +
+      "img-src 'self';" +
+      "connect-src 'self' http://localhost:3000 http://localhost:3000/buchungen;"
+  );
+  next();
+});
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  const indexPath = path.join(__dirname, "public", "index.html");
+  res.sendFile(indexPath);
+});
+
+app.get("/buchungen", async (req, res) => {
+  try {
+    const buchungen = await db.query("SELECT * FROM Buchung");
+    res.json(buchungen);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/fahrzeuge", async (req, res) => {
+  try {
+    const fahrzeuge = await db.query("SELECT * FROM Fahrzeug");
+    res.json(fahrzeuge);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/fahrzeugtyp", async (req, res) => {
+  try {
+    const fahrzeugtyp = await db.query("SELECT * FROM Fahrzeugtyp");
+    res.json(fahrzeugtyp);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/verfuegbar/:start/:end/:typ", async (req, res) => {
+  try {
+    const start = req.params.start;
+    const typ = req.params.typ;
+    const end = req.params.end;
+    const verfügbar = await db.query(`
+    SELECT f.kennzeichen FROM Fahrzeug f
+    LEFT JOIN Buchung b ON f.kennzeichen = b.fahrzeug_kennzeichen
+      AND NOT (
+        '${end}' < start_date OR '${start}' > end_date
+      )
+    WHERE typname = '${typ}'
+    AND b.id IS NULL
+    LIMIT 1;
+    `);
+    res.json(verfügbar);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/buchung", async (req, res) => {
+  try {
+    const { email, start_date, end_date, fahrzeug_kennzeichen } = req.body;
+    if (!email || !start_date || !end_date) {
+      return res
+        .status(400)
+        .json({ error: "Pflicht Felder wurden nicht ausgefüllt" });
+    }
+    const result = await db.query(
+      "INSERT INTO Buchung (email, vertrag, start_date, end_date, fahrzeug_kennzeichen) VALUES (?,?,?,?,?)",
+      [email, null, start_date, end_date, fahrzeug_kennzeichen]
+    );
+
+    res.status(201).json({ message: "Buchung wurde erfolgreich erstellt" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server up and running on http://localhost:${PORT}`);
+});
