@@ -21,6 +21,12 @@ function formatDate(date) {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("vorname").addEventListener("input", function () {
+    this.value = this.value.replace(/[0-9]/g, "");
+  });
+  document.getElementById("nachname").addEventListener("input", function () {
+    this.value = this.value.replace(/[0-9]/g, "");
+  });
   setDatePickerDefaults("start");
   setDatePickerDefaults("end");
   await loadVehicleTypes();
@@ -29,14 +35,18 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (form) {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!form.checkValidity()) { form.reportValidity(); return; }
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
       updateDatabase();
+      updateVehicleDetails();
+      updateTotalPrice();
     });
   }
   const yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 });
-
 
 const vehicleTypes = new Map();
 
@@ -57,25 +67,44 @@ async function loadVehicleTypes() {
 function wireUpDetailsUpdates() {
   ["start", "end", "typ"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("change", () => {
-      updateVehicleDetails();
-      updateTotalPrice();
-    });
+    if (el)
+      el.addEventListener("change", () => {
+        updateVehicleDetails();
+        updateTotalPrice();
+      });
   });
 }
 
 function getField(obj, names) {
-  for (const n of names) if (obj && Object.prototype.hasOwnProperty.call(obj, n)) return obj[n];
+  for (const n of names)
+    if (obj && Object.prototype.hasOwnProperty.call(obj, n)) return obj[n];
   return undefined;
 }
 
 function updateVehicleDetails() {
   const typ = document.getElementById("typ")?.value;
   const row = typ ? vehicleTypes.get(String(typ)) : undefined;
-  const preis = getField(row, ["preis", "Preis", "price", "preis_pro_tag"]);
-  const maxDauer = getField(row, ["max_dauer", "MaxDauer", "maxDauer", "dauer"]);
+  const preis = getField(row, [
+    "preis",
+    "Preis",
+    "price",
+    "preis_pro_tag",
+    "tagespreis",
+  ]);
+  const maxDauer = getField(row, [
+    "max_dauer",
+    "MaxDauer",
+    "maxDauer",
+    "dauer",
+  ]);
   const freiKm = getField(row, ["frei_km", "FreiKM", "freikm", "km_frei"]);
-  const kmPreis = getField(row, ["km_preis", "KmPreis", "kmPreis", "preis_km"]);
+  const kmPreis = getField(row, [
+    "km_preis",
+    "KmPreis",
+    "kmPreis",
+    "preis_km",
+    "kilometerpreis",
+  ]);
   const kaution = getField(row, ["kaution", "Kaution", "deposit"]);
 
   setDetail("vd-preis", preis != null ? formatEUR(preis) + " / Tag" : "—");
@@ -100,12 +129,18 @@ function updateTotalPrice() {
   const end = document.getElementById("end")?.value;
   const out = document.getElementById("vd-gesamt");
   if (!out) return;
-  if (!preis || !start || !end) { out.textContent = "—"; return; }
+  if (!preis || !start || !end) {
+    out.textContent = "—";
+    return;
+  }
   const d1 = new Date(start);
   const d2 = new Date(end);
   const msPerDay = 24 * 60 * 60 * 1000;
   let days = Math.floor((d2 - d1) / msPerDay) + 1; // inkl. Starttag
-  if (!Number.isFinite(days) || days <= 0) { out.textContent = "—"; return; }
+  if (!Number.isFinite(days) || days <= 0) {
+    out.textContent = "—";
+    return;
+  }
   const total = days * Number(preis);
   out.textContent = formatEUR(total);
 }
@@ -113,7 +148,10 @@ function updateTotalPrice() {
 function formatEUR(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+  }).format(n);
 }
 
 async function updateDatabase() {
@@ -123,7 +161,7 @@ async function updateDatabase() {
   const getTyp = document.getElementById("typ").value;
 
   const getKennzeichen = await checkAvailablePlate(getStart, getEnd, getTyp);
- 
+
   fetch("http://localhost:3000/buchung", {
     method: "POST",
     body: JSON.stringify({
@@ -141,13 +179,13 @@ async function updateDatabase() {
 }
 
 async function checkAvailablePlate(start, end, typ) {
-  const url = `http://localhost:3000/verfuegbar/${start}/${end}/${typ}`;;
+  const url = `http://localhost:3000/verfuegbar/${start}/${end}/${typ}`;
   let kennzeichen = "";
- 
+
   await fetch(url)
     .then((response) => response.json())
     .then((data) => {
-        kennzeichen = data[0].kennzeichen;
+      kennzeichen = data[0].kennzeichen;
     })
     .catch((error) => {
       console.error("Error:", error);
