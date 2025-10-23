@@ -1,4 +1,6 @@
 const url = "http://localhost:3000/";
+let globalTagesPreis,
+  globalKilometerPreis = 0;
 
 function setDatePickerDefaults(inputId, monthsAhead = 4) {
   const dateInput = document.getElementById(inputId);
@@ -46,21 +48,29 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   const yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
-});
+  document
+    .getElementById("typ")
+    .addEventListener("change", () => loadVehicleTypes());
 
-document.getElementById("start").addEventListener("change", setGlobalPreise);
-document.getElementById("end").addEventListener("change", setGlobalPreise);
-document.getElementById("typ").addEventListener("change", loadVehicleTypes );
+  document
+    .getElementById("start")
+    .addEventListener("change", () => setPreise());
+  document.getElementById("end").addEventListener("change", () => setPreise());
+});
 
 async function loadVehicleTypes() {
   const currenttyp = document.getElementById("typ").value;
-  
+
   try {
     const res = await fetch(`${url}fahrzeugtyp`);
     const data = await res.json();
     for (let i in data) {
+      console.log(globalTagesPreis);
       if (data[i].name == currenttyp) {
-        setPreise(data[i].tagespreis, data[i].kilometerpreis);
+        globalKilometerPreis = data[i].kilometerpreis;
+        globalTagesPreis = data[i].tagespreis;
+        console.log(globalTagesPreis);
+        setPreise();
       }
     }
   } catch (e) {
@@ -68,20 +78,17 @@ async function loadVehicleTypes() {
   }
 }
 
-async function setPreise(tagespreis, kilometerpreis){
+async function setPreise() {
   const dauer = setDauer();
-  document.getElementById("vd-preis").innerHTML = tagespreis;
-  document.getElementById("vd-kmpreis").innerHTML = kilometerpreis;
+  document.getElementById("vd-preis").innerHTML = globalTagesPreis;
+  document.getElementById("vd-kmpreis").innerHTML = globalKilometerPreis;
   document.getElementById("vd-kaution").innerHTML = 100;
-  document.getElementById("vd-gesamt").innerHTML = tagespreis * dauer + 100;
+  document.getElementById("vd-gesamt").innerHTML =
+    globalTagesPreis * dauer + 100;
 }
 
-function setGlobalPreise(){
-    set
-}
-
-function setDauer(){
-const start = new Date(document.getElementById("start").value);
+function setDauer() {
+  const start = new Date(document.getElementById("start").value);
   const ende = new Date(document.getElementById("end").value);
 
   const differenzMs = ende - start;
@@ -158,7 +165,7 @@ async function savePdf() {
     vonDatumY,
     bisDatumX,
     bisDatumY;
-  if (document.getElementById("typ").value == "pritsche") {
+  if (document.getElementById("typ").value == "Pritsche") {
     file = "/pdfTemplate/VertragPritsche.pdf";
     nameX = 310;
     nameY = 670;
