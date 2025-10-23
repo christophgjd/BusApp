@@ -26,9 +26,29 @@ app.get("/", (req, res) => {
   res.sendFile(indexPath);
 });
 
+app.get("/admin", (req, res) => {
+  const adminPath = path.join(__dirname, "public", "adminPanel.html");
+  res.sendFile(adminPath);
+});
+
+app.get("/edit/:id", (req, res) =>{
+  const editPath = path.join (__dirname, "public", "edit.html");
+  res.sendFile(editPath); 
+});
+
 app.get("/buchungen", async (req, res) => {
   try {
-    const buchungen = await db.query("SELECT * FROM Buchung");
+    const buchungen = await db.query(`SELECT * FROM Buchung`);
+    res.json(buchungen);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/buchungen/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const buchungen = await db.query(`SELECT * FROM Buchung WHERE id = ${id}`);
     res.json(buchungen);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -83,8 +103,8 @@ app.post("/buchung", async (req, res) => {
         .json({ error: "Pflicht Felder wurden nicht ausgefüllt" });
     }
     const result = await db.query(
-      "INSERT INTO Buchung (email, vertrag, start_date, end_date, fahrzeug_kennzeichen) VALUES (?,?,?,?,?)",
-      [email, null, start_date, end_date, fahrzeug_kennzeichen]
+      "INSERT INTO Buchung (email, vertrag, start_date, end_date, fahrzeug_kennzeichen, status) VALUES (?,?,?,?,?,?)",
+      [email, null, start_date, end_date, fahrzeug_kennzeichen, 'ausstehend']
     );
 
     res.status(201).json({ message: "Buchung wurde erfolgreich erstellt" });

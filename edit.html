@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BusApp – Buchungsverwaltung</title>
+    <link rel="stylesheet" href="AdminPanelStyles/admin-styles.css" />
+    <link rel="stylesheet" href="AdminPanelStyles/styles.css" />
+    <script src="script/adminPanel.js" defer></script>
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <div class="brand" aria-label="Startseite">
+          <img
+            src="img/logo-wienerlinien.svg"
+            alt="Wiener Linien"
+            class="brand__img"
+          />
+          <span class="brand__name">Fahrzeugvermietung</span>
+        </div>
+        <div class="header__title" aria-hidden="false">Buchung editieren</div>
+        <div class="header__spacer" aria-hidden="true"></div>
+      </div>
+    </header>
+    <label for="cars">Choose a car:</label>
+
+    <select name="cars" id="cars">
+      <option value="volvo">Volvo</option>
+      <option value="saab">Saab</option>
+      <option value="mercedes">Mercedes</option>
+      <option value="audi">Audi</option>
+    </select>
+
+    <footer class="footer">
+      <div class="container">
+        <small class="muted">© <span id="year">2025</span> BusApp</small>
+      </div>
+    </footer>
+  </body>
+</html>

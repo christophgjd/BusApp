@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BusApp – Buchungsverwaltung</title>
+    <link rel="stylesheet" href="AdminPanelStyles/admin-styles.css" />
+    <link rel="stylesheet" href="AdminPanelStyles/styles.css" />
+    <script src="script/adminPanel.js" defer></script>
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <div class="brand" aria-label="Startseite">
+          <img
+            src="img/logo-wienerlinien.svg"
+            alt="Wiener Linien"
+            class="brand__img"
+          />
+          <span class="brand__name">Fahrzeugvermietung</span>
+        </div>
+        <div class="header__title" aria-hidden="false">Buchungsverwaltung</div>
+        <div class="header__spacer" aria-hidden="true"></div>
+      </div>
+    </header>
+
+    <main class="container space-y">
+      <section class="hero">
+        <h1 class="h1">Buchungsverwaltung</h1>
+        <p class="muted">Hier sehen Sie alle aktuellen Buchungen.</p>
+      </section>
+
+      <section class="card">
+        <div class="booking-filters">
+          <div class="form-grid">
+            <div class="field">
+              <label for="search">Suche nach E-Mail</label>
+              <input type="text" id="search" placeholder="name@beispiel.de" />
+            </div>
+            <div class="field">
+              <label for="status-filter">Status</label>
+              <select id="status-filter">
+                <option value="all">Alle anzeigen</option>
+                <option value="confirmed">Bestätigt</option>
+                <option value="pending">Ausstehend</option>
+                <option value="canceled">Storniert</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="booking-table" id="buchungen">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>E-Mail</th>
+                <th>Kennzeichen</th>
+                <th>Von</th>
+                <th>Bis</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <small class="muted">© <span id="year">2025</span> BusApp</small>
+      </div>
+    </footer>
+  </body>
+</html>
