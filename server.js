@@ -31,9 +31,9 @@ app.get("/admin", (req, res) => {
   res.sendFile(adminPath);
 });
 
-app.get("/edit/:id", (req, res) =>{
-  const editPath = path.join (__dirname, "public", "edit.html");
-  res.sendFile(editPath); 
+app.get("/edit", (req, res) => {
+  const editPath = path.join(__dirname, "public", "editBuchung.html");
+  res.sendFile(editPath);
 });
 
 app.get("/buchungen", async (req, res) => {
@@ -104,7 +104,7 @@ app.post("/buchung", async (req, res) => {
     }
     const result = await db.query(
       "INSERT INTO Buchung (email, vertrag, start_date, end_date, fahrzeug_kennzeichen, status) VALUES (?,?,?,?,?,?)",
-      [email, null, start_date, end_date, fahrzeug_kennzeichen, 'ausstehend']
+      [email, null, start_date, end_date, fahrzeug_kennzeichen, "ausstehend"]
     );
 
     res.status(201).json({ message: "Buchung wurde erfolgreich erstellt" });
@@ -112,6 +112,24 @@ app.post("/buchung", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post(
+  "/update/:id/:email/:kennzeichen/:start/:end/:status",
+  async (req, res) => {
+    id = req.params.id;
+    email = req.params.email;
+    kennzeichen = req.params.kennzeichen;
+    start = req.params.start;
+    end = req.params.end;
+    zustand = req.params.status;
+
+    const result = await db.query(
+      `UPDATE Buchung 
+       SET email = ${email}, start_date = ${start}, end_date = ${end}, fahrzeug_kennzeichen = ${kennzeichen}, status = ${zustand} 
+       WHERE id = ${id}`
+    );
+  }
+);
 
 app.listen(PORT, () => {
   console.log(`Server up and running on http://localhost:${PORT}`);

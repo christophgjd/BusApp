@@ -80,11 +80,11 @@ async function loadVehicleTypes() {
 
 async function setPreise() {
   const dauer = setDauer();
-  document.getElementById("vd-preis").innerHTML = globalTagesPreis;
-  document.getElementById("vd-kmpreis").innerHTML = globalKilometerPreis;
-  document.getElementById("vd-kaution").innerHTML = 100;
+  document.getElementById("vd-preis").innerHTML = globalTagesPreis + "€";
+  document.getElementById("vd-kmpreis").innerHTML = globalKilometerPreis + "€";
+  document.getElementById("vd-kaution").innerHTML = 100 + "€";
   document.getElementById("vd-gesamt").innerHTML =
-    globalTagesPreis * dauer + 100;
+    globalTagesPreis * dauer + 100 + "€";
 }
 
 function setDauer() {

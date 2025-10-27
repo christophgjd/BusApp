@@ -7,12 +7,13 @@ document.addEventListener("DOMContentLoaded", () => {
       data.forEach((data) => {
         const row = document.createElement("tr");
         row.innerHTML = `
-        <td><div class="cell-content">${data.id}</div></td>
+        <td><div class="cell-content" id="id">${data.id}</div></td>
          <td><div class="cell-content">${data.email}</div></td>
          <td><div class="cell-content">${data.fahrzeug_kennzeichen}</div></td>
          <td><div class="cell-content">${formatDate(data.start_date)}</div></td>
          <td><div class="cell-content">${formatDate(data.end_date)}</div></td>
          <td><div class"cell-content">${data.status}</div></td>
+         <td><button id="bearbeiten">Bearbeiten</button></td>
         `;
         tableBody.appendChild(row);
       });
@@ -25,10 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   tableBody.addEventListener("dblclick", () => {
-    
+    id = document.getElementById("id").value;
+    window.open(`../edit`)
   });
+  document.getElementById("bearbeiten")
 });
-
 
 
 function formatDate(dateString) {
