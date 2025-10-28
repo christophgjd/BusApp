@@ -1,9 +1,15 @@
-const url = "http://localhost:3000/";
-let globalTagesPreis,
-  globalKilometerPreis = 0;
+let vehicles, selectedVehicle;
 
-function setDatePickerDefaults(inputId, monthsAhead = 4) {
+function formatDate(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function setDatePickerDefaults(inputId, monthsAhead = 3) {
   const dateInput = document.getElementById(inputId);
+  dateInput.addEventListener("change", () => setPreise());
 
   const today = new Date();
   const todayStr = formatDate(today);
@@ -17,74 +23,77 @@ function setDatePickerDefaults(inputId, monthsAhead = 4) {
   dateInput.max = futureStr;
 }
 
-function formatDate(date) {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+function nameInputValidation(inputId) {
+  document.getElementById(inputId).addEventListener("input", function () {
+    this.value = this.value.replace(/[0-9]/g, "");
+  });
+}
+
+function submitBookingListner() {
+  const form = document.getElementById("bookingForm");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    form.reportValidity();
+    updateDatabase();
+  });
+}
+
+function impressumYear() {
+  const yearEl = document.getElementById("year");
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  document.getElementById("vorname").addEventListener("input", function () {
-    this.value = this.value.replace(/[0-9]/g, "");
-  });
-  document.getElementById("nachname").addEventListener("input", function () {
-    this.value = this.value.replace(/[0-9]/g, "");
-  });
+  // set default values & add listeners
   setDatePickerDefaults("start");
   setDatePickerDefaults("end");
-  await loadVehicleTypes();
-  hideError();
-  const form = document.getElementById("bookingForm");
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-      updateDatabase();
-    });
-  }
-  const yearEl = document.getElementById("year");
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
-  document
-    .getElementById("typ")
-    .addEventListener("change", () => loadVehicleTypes());
+  impressumYear();
 
-  document
-    .getElementById("start")
-    .addEventListener("change", () => setPreise());
-  document.getElementById("end").addEventListener("change", () => setPreise());
+  // database requests
+  await loadVehicleTypes();
+
+  // append needed listners
+  nameInputValidation("vorname");
+  nameInputValidation("nachname");
+  submitBookingListner();
 });
 
 async function loadVehicleTypes() {
-  const currenttyp = document.getElementById("typ").value;
-
   try {
-    const res = await fetch(`${url}fahrzeugtyp`);
-    const data = await res.json();
-    for (let i in data) {
-      console.log(globalTagesPreis);
-      if (data[i].name == currenttyp) {
-        globalKilometerPreis = data[i].kilometerpreis;
-        globalTagesPreis = data[i].tagespreis;
-        console.log(globalTagesPreis);
-        setPreise();
-      }
+    const res = await fetch(`/fahrzeugtyp`);
+    vehicles = await res.json();
+
+    const parent = document.getElementById("vehicle-type");
+    for (let i in vehicles) {
+      const option = document.createElement("option");
+      option.value = vehicles[i].name;
+      option.innerHTML = vehicles[i].name;
+      parent.appendChild(option);
     }
+
+    selectedVehicle = vehicles[0];
+    setPreise();
+    document
+      .getElementById("vehicle-type")
+      .addEventListener("change", setPreise);
   } catch (e) {
     console.error("Fahrzeugtypen konnten nicht geladen werden", e);
   }
 }
 
 async function setPreise() {
+  selectedVehicle = vehicles.find(
+    (el) => el.name == document.getElementById("vehicle-type").value
+  );
   const dauer = setDauer();
-  document.getElementById("vd-preis").innerHTML = globalTagesPreis + "€";
-  document.getElementById("vd-kmpreis").innerHTML = globalKilometerPreis + "€";
-  document.getElementById("vd-kaution").innerHTML = 100 + "€";
+  document.getElementById("vd-preis").innerHTML =
+    selectedVehicle.tagespreis + "€";
+  document.getElementById("vd-kmpreis").innerHTML =
+    selectedVehicle.kilometerpreis + "€";
+  document.getElementById("vd-kaution").innerHTML =
+    selectedVehicle.kaution + "€";
   document.getElementById("vd-gesamt").innerHTML =
-    globalTagesPreis * dauer + 100 + "€";
+    selectedVehicle.tagespreis * dauer + selectedVehicle.kaution + "€";
 }
 
 function setDauer() {
@@ -95,15 +104,6 @@ function setDauer() {
   const tage = Math.floor(differenzMs / (1000 * 60 * 60 * 24)) + 1;
 
   return tage;
-}
-
-function formatEUR(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return String(value);
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-  }).format(n);
 }
 
 function hideError() {
@@ -124,7 +124,7 @@ async function updateDatabase() {
   const getEmail = document.getElementById("email").value;
   const getStart = document.getElementById("start").value;
   const getEnd = document.getElementById("end").value;
-  const getTyp = document.getElementById("typ").value;
+  const getTyp = document.getElementById("vehicle-type").value;
 
   const getKennzeichen = await checkAvailablePlate(getStart, getEnd, getTyp);
   if (!getKennzeichen) {
@@ -134,7 +134,7 @@ async function updateDatabase() {
     return;
   }
   savePdf();
-  fetch(`${url}buchung`, {
+  fetch("/buchung", {
     method: "POST",
     body: JSON.stringify({
       email: getEmail,
@@ -165,7 +165,7 @@ async function savePdf() {
     vonDatumY,
     bisDatumX,
     bisDatumY;
-  if (document.getElementById("typ").value == "Pritsche") {
+  if (document.getElementById("vehicle-type").value == "Pritsche") {
     file = "/pdfTemplate/VertragPritsche.pdf";
     nameX = 310;
     nameY = 670;
@@ -224,7 +224,7 @@ async function savePdf() {
 async function checkAvailablePlate(start, end, typ) {
   let kennzeichen = "";
 
-  await fetch(`${url}verfuegbar/${start}/${end}/${typ}`)
+  await fetch(`/verfuegbar/${start}/${end}/${typ}`)
     .then((response) => response.json())
     .then((data) => {
       kennzeichen = data[0].kennzeichen;

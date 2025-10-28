@@ -6,18 +6,6 @@ const db = require("./db");
 const app = express();
 const PORT = 3000;
 
-app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self' http://localhost:3000;" +
-      "script-src 'self' http://localhost:3000 https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.js;" +
-      "style-src 'self';" +
-      "img-src 'self';" +
-      "connect-src * ;"
-  );
-  next();
-});
-
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
@@ -81,8 +69,10 @@ app.get("/verfuegbar/:start/:end/:typ", async (req, res) => {
     const verfügbar = await db.query(`
     SELECT f.kennzeichen FROM Fahrzeug f
     LEFT JOIN Buchung b ON f.kennzeichen = b.fahrzeug_kennzeichen
+      AND b.status NOT LIKE 'genehmigt'
       AND NOT (
         '${end}' < start_date OR '${start}' > end_date
+        status = "genehmigt"
       )
     WHERE typname = '${typ}'
     AND b.id IS NULL
@@ -113,23 +103,21 @@ app.post("/buchung", async (req, res) => {
   }
 });
 
-app.post(
-  "/update/:id/:email/:kennzeichen/:start/:end/:status",
-  async (req, res) => {
+app.post("/update/:id", async (req, res) => {
     id = req.params.id;
-    email = req.params.email;
-    kennzeichen = req.params.kennzeichen;
-    start = req.params.start;
-    end = req.params.end;
-    zustand = req.params.status;
-
-    const result = await db.query(
-      `UPDATE Buchung 
-       SET email = ${email}, start_date = ${start}, end_date = ${end}, fahrzeug_kennzeichen = ${kennzeichen}, status = ${zustand} 
+    try {
+      const {email, kennzeichen, start, end, condition} = req.body;
+      const result = await db.query(
+        `UPDATE Buchung 
+       SET email = ${email}, start_date = ${start}, end_date = ${end}, fahrzeug_kennzeichen = ${kennzeichen}, status = ${condition} 
        WHERE id = ${id}`
-    );
-  }
-);
+      )
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+    
+  
+});
 
 app.listen(PORT, () => {
   console.log(`Server up and running on http://localhost:${PORT}`);
