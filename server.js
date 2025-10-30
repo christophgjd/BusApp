@@ -19,11 +19,6 @@ app.get("/admin", (req, res) => {
   res.sendFile(adminPath);
 });
 
-app.get("/edit", (req, res) => {
-  const editPath = path.join(__dirname, "public", "editBuchung.html");
-  res.sendFile(editPath);
-});
-
 app.get("/buchungen", async (req, res) => {
   try {
     const buchungen = await db.query(`SELECT * FROM Buchung`);
@@ -61,24 +56,46 @@ app.get("/fahrzeugtyp", async (req, res) => {
   }
 });
 
-app.get("/verfuegbar/:start/:end/:typ", async (req, res) => {
+// app.get("/verfuegbar/:start/:end/:typ", async (req, res) => {
+//   try {
+//     const start = req.params.start;
+//     const typ = req.params.typ;
+//     const end = req.params.end;
+//     const verfügbar = await db.query(`
+//     SELECT f.kennzeichen FROM Fahrzeug f
+//     LEFT JOIN Buchung b ON f.kennzeichen = b.fahrzeug_kennzeichen
+//       AND b.status NOT LIKE 'genehmigt'
+//       AND NOT (
+//         '${end}' < start_date OR '${start}' > end_date
+//         status = "genehmigt"
+//       )
+//     WHERE typname = '${typ}'
+//     AND b.id IS NULL
+//     LIMIT 1;
+//     `);
+//     res.json(verfügbar);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+app.get("/verfuegbarekennzeichen", async (req, res) => {
   try {
-    const start = req.params.start;
-    const typ = req.params.typ;
-    const end = req.params.end;
-    const verfügbar = await db.query(`
-    SELECT f.kennzeichen FROM Fahrzeug f
-    LEFT JOIN Buchung b ON f.kennzeichen = b.fahrzeug_kennzeichen
-      AND b.status NOT LIKE 'genehmigt'
-      AND NOT (
-        '${end}' < start_date OR '${start}' > end_date
-        status = "genehmigt"
-      )
-    WHERE typname = '${typ}'
-    AND b.id IS NULL
-    LIMIT 1;
-    `);
-    res.json(verfügbar);
+    const available = await db.query(
+      "SELECT kennzeichen FROM Fahrzeug WHERE verfuegbar = true;"
+    );
+    res.json(available);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/buchungsstatus", async (req, res) => {
+  try {
+    const status = await db.query(
+      "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'buchung' AND COLUMN_NAME = 'status';"
+    );
+    res.json(status);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -86,15 +103,15 @@ app.get("/verfuegbar/:start/:end/:typ", async (req, res) => {
 
 app.post("/buchung", async (req, res) => {
   try {
-    const { email, start_date, end_date} = req.body;
+    const { email, start_date, end_date } = req.body;
     if (!email || !start_date || !end_date) {
       return res
         .status(400)
         .json({ error: "Pflicht Felder wurden nicht ausgefüllt" });
     }
     const result = await db.query(
-      "INSERT INTO Buchung (email, vertrag, start_date, end_date) VALUES (?,?,?,?)",
-      [email, null, start_date, end_date]
+      "INSERT INTO Buchung (email, vertrag, start_date, end_date, status) VALUES (?,?,?,?,?)",
+      [email, null, start_date, end_date, "Offen"]
     );
 
     res.status(201).json({ message: "Buchung wurde erfolgreich erstellt" });
@@ -104,19 +121,17 @@ app.post("/buchung", async (req, res) => {
 });
 
 app.post("/update/:id", async (req, res) => {
-    id = req.params.id;
-    try {
-      const {email, kennzeichen, start, end, condition} = req.body;
-      const result = await db.query(
-        `UPDATE Buchung 
+  id = req.params.id;
+  try {
+    const { email, kennzeichen, start, end, condition } = req.body;
+    const result = await db.query(
+      `UPDATE Buchung 
        SET email = ${email}, start_date = ${start}, end_date = ${end}, fahrzeug_kennzeichen = ${kennzeichen}, status = ${condition} 
        WHERE id = ${id}`
-      )
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-    
-  
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () => {

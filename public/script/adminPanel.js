@@ -34,7 +34,7 @@ function loadTableContent() {
     });
 }
 
-function editListener() {
+ function editListener() {
   const table = document.getElementById("buchungen");
   let id,
     selected_email,
@@ -52,18 +52,12 @@ function editListener() {
       const cells = row.querySelectorAll("td");
 
       id = cells[0].textContent;
-      cells.forEach((td, index) => {
+      cells.forEach(async (td, index) => {
         const oldValue = td.textContent.trim();
         if (index === cells.length - 1) return;
         if (cells[index].id === "status") {
           const parent = document.createElement("select");
-          const zustaende = ["Offen", "Abgelehnt", "genehmigt"];
-          parent.appendChild(setStatusDropdown(oldValue));
-          zustaende
-            .filter((zustand) => zustand !== oldValue)
-            .forEach((zustand) =>
-              parent.appendChild(setStatusDropdown(zustand))
-            );
+          await setBuchungsstatus(parent, oldValue);
 
           td.innerHTML = "";
           td.appendChild(parent);
@@ -73,7 +67,6 @@ function editListener() {
           cells[index].id === "start_date" ||
           cells[index].id === "end_date"
         ) {
-          
           td.innerHTML = "";
           td.appendChild(setDatePicker(oldValue));
         }
@@ -81,10 +74,13 @@ function editListener() {
           email = oldValue;
           td.innerHTML = "";
           td.appendChild(setInputText(oldValue));
-        } else if (cells[index].id === "kennzeichen") {
+        } 
+        if (cells[index].id === "kennzeichen") {
+          const parent = document.createElement("select");
+          await setKennzeichenDropdown(parent);
           kennzeichen = oldValue;
           td.innerHTML = "";
-          td.appendChild(setInputText(oldValue));
+          td.appendChild(parent);
         }
       });
       e.target.textContent = "Speichern";
@@ -111,18 +107,27 @@ function editListener() {
   });
 }
 
-async function checkAvailablePlate(start, end, typ) {
-  let kennzeichen = "";
+ async function setKennzeichenDropdown(selectElement){
+  const res =  await fetch("/verfuegbarekennzeichen");
+  const kennzeichenList =  await res.json();
+  for(const item of kennzeichenList){
+    const option = document.createElement("option");
+    option.value = item.kennzeichen;
+    option.innerHTML = item.kennzeichen;
+    selectElement.appendChild(option);
+  }
+}
 
-  await fetch(`/verfuegbar/${start}/${end}/${typ}`)
-    .then((response) => response.json())
-    .then((data) => {
-      kennzeichen = data[0].kennzeichen;
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
-  return kennzeichen;
+async function setBuchungsstatus(selectElement, value){
+  const res = await fetch("/buchungsstatus");
+  const statusList = await res.json();
+  console.log(statusList)
+  for(const item of statusList){
+    const option = document.createElement("option");
+    option.value = item;
+    option.innerHTML = item;
+    selectElement.appendChild(option);
+  }
 }
 
 function setInputText(text) {
