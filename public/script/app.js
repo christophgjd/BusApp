@@ -43,6 +43,8 @@ function impressumYear() {
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 }
 
+//ANMERKUNGS FELD FEHLT NOCH !!
+
 window.addEventListener("DOMContentLoaded", async () => {
   // set default values & add listeners
   setDatePickerDefaults("start");
@@ -106,19 +108,7 @@ function setDauer() {
   return tage;
 }
 
-function hideError() {
-  const errorDiv = document.getElementById("error-message");
-  errorDiv.style.display = "none";
-}
 
-function showError(message) {
-  const errorDiv = document.getElementById("error-message");
-  errorDiv.textContent = message;
-  errorDiv.style.display = "block";
-  setTimeout(() => {
-    errorDiv.style.display = "none";
-  }, 5000);
-}
 
 async function updateDatabase() {
   const getEmail = document.getElementById("email").value;
@@ -126,13 +116,6 @@ async function updateDatabase() {
   const getEnd = document.getElementById("end").value;
   const getTyp = document.getElementById("vehicle-type").value;
 
-  const getKennzeichen = await checkAvailablePlate(getStart, getEnd, getTyp);
-  if (!getKennzeichen) {
-    showError(
-      `In diesem Zeitraum ist kein Fahrzeug vom Typ ${getTyp} verfügbar`
-    );
-    return;
-  }
   savePdf();
   fetch("/buchung", {
     method: "POST",
@@ -140,7 +123,6 @@ async function updateDatabase() {
       email: getEmail,
       start_date: getStart,
       end_date: getEnd,
-      fahrzeug_kennzeichen: getKennzeichen,
     }),
     headers: {
       "Content-type": "application/json; charset=UTF-8",
@@ -177,7 +159,7 @@ async function savePdf() {
     vonDatumY = 565;
     bisDatumX = 450;
     bisDatumY = 565;
-  } else if (document.getElementById("typ").value == "BUS") {
+  } else if (document.getElementById("vehicle-type").value == "BUS") {
     file = "/pdfTemplate/VertragBus.pdf";
     nameX = 310;
     nameY = 710;
@@ -221,16 +203,4 @@ async function savePdf() {
   link.click();
 }
 
-async function checkAvailablePlate(start, end, typ) {
-  let kennzeichen = "";
 
-  await fetch(`/verfuegbar/${start}/${end}/${typ}`)
-    .then((response) => response.json())
-    .then((data) => {
-      kennzeichen = data[0].kennzeichen;
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
-  return kennzeichen;
-}

@@ -86,15 +86,15 @@ app.get("/verfuegbar/:start/:end/:typ", async (req, res) => {
 
 app.post("/buchung", async (req, res) => {
   try {
-    const { email, start_date, end_date, fahrzeug_kennzeichen } = req.body;
+    const { email, start_date, end_date} = req.body;
     if (!email || !start_date || !end_date) {
       return res
         .status(400)
         .json({ error: "Pflicht Felder wurden nicht ausgefüllt" });
     }
     const result = await db.query(
-      "INSERT INTO Buchung (email, vertrag, start_date, end_date, fahrzeug_kennzeichen, status) VALUES (?,?,?,?,?,?)",
-      [email, null, start_date, end_date, fahrzeug_kennzeichen, "ausstehend"]
+      "INSERT INTO Buchung (email, vertrag, start_date, end_date) VALUES (?,?,?,?)",
+      [email, null, start_date, end_date]
     );
 
     res.status(201).json({ message: "Buchung wurde erfolgreich erstellt" });
